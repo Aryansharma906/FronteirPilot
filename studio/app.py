@@ -817,6 +817,40 @@ def frontierpilot_wix_templates_endpoint():
     return jsonify({"success": True, "templates": templates})
 
 
+# =============================================================================
+# SELF-IMPROVING INTELLIGENCE & HEURISTICS CALIBRATION
+# =============================================================================
+
+@app.route("/api/frontierpilot/intelligence/insights", methods=["GET"])
+def frontierpilot_intelligence_insights_endpoint():
+    """Retrieve self-improving intelligence report, market trends, and calibration weights."""
+    from lib.self_improving_intelligence import SelfImprovingIntelligenceEngine
+    engine = SelfImprovingIntelligenceEngine()
+    report = engine.run_autonomous_intelligence_cycle()
+    return jsonify({"success": True, "insights": report})
+
+
+@app.route("/api/frontierpilot/intelligence/optimize", methods=["POST"])
+def frontierpilot_intelligence_optimize_endpoint():
+    """Execute dynamic calibration loop across opportunities and return updated weights."""
+    from lib.self_improving_intelligence import SelfImprovingIntelligenceEngine
+    engine = SelfImprovingIntelligenceEngine()
+    report = engine.run_autonomous_intelligence_cycle()
+    return jsonify({"success": True, "optimized_report": report})
+
+
+@app.route("/api/frontierpilot/intelligence/score_bullet", methods=["POST"])
+def frontierpilot_intelligence_score_bullet_endpoint():
+    """Score a CV bullet across metric quantification, action verb strength, and length."""
+    from lib.self_improving_intelligence import SelfImprovingIntelligenceEngine
+    engine = SelfImprovingIntelligenceEngine()
+    data = request.get_json() or {}
+    bullet = data.get("bullet", "")
+    score_res = engine.evaluate_bullet_quality(bullet)
+    return jsonify({"success": True, "score": score_res})
+
+
+
 
 # =============================================================================
 # VAIBHAV SISINTY AI GROWTH & GPS FRAMEWORK SUITE

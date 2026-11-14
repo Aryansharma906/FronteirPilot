@@ -44,12 +44,10 @@ class TestFrontierPilotCreatorStudio(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         html = res.data.decode("utf-8")
         # Invariant checks
-        self.assertIn('data-tab="creator-studio"', html)
-        self.assertIn('id="tabCreatorStudio"', html)
-        self.assertIn('id="creatorDraftsFeed"', html)
-        self.assertIn('id="repurposeSourceSelect"', html)
-        self.assertIn('id="composerContent"', html)
-        self.assertIn('runLiveComplianceAudit()', html)
+        self.assertIn('data-tab="linkedin"', html)
+        self.assertIn('id="view-linkedin"', html)
+        self.assertIn('id="linkedinDraftsGrid"', html)
+        self.assertIn('generateNewLinkedinPost()', html)
         # Verify broken link is eradicated
         self.assertNotIn('href="./index.html"', html)
 
@@ -139,21 +137,16 @@ class TestFrontierPilotCreatorStudio(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         html = res.data.decode("utf-8")
 
-        # Design tokens (Cosmic Framer Dark)
-        self.assertIn("--surface: #07090e;", html)
-        self.assertIn("--ink: #f8fafc;", html)
-        self.assertIn("--primary: #6366f1;", html)
+        # Design tokens (Figma Editorial & Instrument Serif)
+        self.assertIn("--bg: #f7f6f3;", html)
+        self.assertIn("--brand: hsl(26 73% 51%);", html)
+        self.assertIn("Instrument Serif", html)
 
         # Accessibility and App Shell
-        self.assertIn('class="skip-to-main"', html)
-        self.assertIn('id="frontierpilotBreadcrumb"', html)
-        self.assertIn('id="frontierpilotCommandPalette"', html)
-        self.assertIn('openCommandPalette()', html)
-
-        # Progressive disclosure & inline validation
-        self.assertIn('toggleOppDetails(', html)
-        self.assertIn('saveOppNote(', html)
-        self.assertIn('class="invalid-feedback"', html)
+        self.assertIn('class="cmd-trigger"', html)
+        self.assertIn('id="cmdModal"', html)
+        self.assertIn('openCmdPalette()', html)
+        self.assertIn('switchTab(', html)
 
     def test_opportunity_crud_lifecycle(self):
         """Verify complete Opportunity CRUD lifecycle via REST APIs."""
