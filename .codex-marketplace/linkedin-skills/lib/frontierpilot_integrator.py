@@ -1436,16 +1436,16 @@ Evaluate the candidate and return a JSON object with:
             if j.get("url") not in seen_urls:
                 all_jobs.append({
                     "id": f"inbox-{j.get('id')}",
-                    "title": j.get("role") or "Software Engineer",
-                    "company": j.get("company") or "Technology Co",
-                    "ats": j.get("ats_provider") or "Ashby",
-                    "location": j.get("location") or "Remote",
-                    "compensation": j.get("compensation") or "Competitive",
-                    "posted_at": "recently",
+                    "title": j.get("title") or j.get("role") or "AI Systems Engineer",
+                    "company": j.get("organization") or j.get("company") or "Technology Org",
+                    "ats": j.get("source") or j.get("ats_provider") or "Ashby",
+                    "location": j.get("location") or "Remote / Hybrid",
+                    "compensation": j.get("compensation") or j.get("stipend") or "Competitive Compensation",
+                    "posted_at": j.get("posted_at") or "today",
                     "url": j.get("url"),
-                    "match_score": int(j.get("fit_score") or 90),
-                    "tags": ["AI Systems", "Software"],
-                    "reason": "Discovered via automated ATS portal scanner."
+                    "match_score": int(j.get("match_score") or j.get("fit_score") or 95),
+                    "tags": [j.get("category", "AI Systems"), "LLM Evaluation", "Python"],
+                    "reason": j.get("match_reason") or "Discovered via automated ATS portal scanner."
                 })
 
         # Apply filters
