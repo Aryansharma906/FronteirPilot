@@ -1,5 +1,5 @@
 // Service Worker for LinkedIn Studio & FrontierPilot Career Radar (Offline-First PWA)
-const CACHE_NAME = 'frontierpilot-v2.5-post-queue-hydration';
+const CACHE_NAME = 'frontierpilot-v2.6-curated-queue-sync';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
