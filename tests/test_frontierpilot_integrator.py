@@ -128,6 +128,35 @@ class TestFrontierPilotIntegrator(unittest.TestCase):
         self.assertTrue(res_approve.get("success"))
         self.assertEqual(res_approve.get("action"), "approved")
 
+    def test_evaluate_structured_blocks(self):
+        blocks = self.integrator.evaluate_structured_blocks(self.sample_opps[0])
+        self.assertIn("block_a", blocks)
+        self.assertIn("block_c", blocks)
+        self.assertIn("block_h", blocks)
+        self.assertEqual(blocks["block_a"]["status"], "PASS")
+        self.assertEqual(blocks["block_h"]["score_percent"], 85)
+        self.assertEqual(blocks["block_h"]["score_5"], 4.2)
+
+    def test_compute_followup_cadence(self):
+        cadence = self.integrator.compute_followup_cadence(self.sample_opps)
+        self.assertIn("urgent", cadence)
+        self.assertIn("overdue", cadence)
+        self.assertIn("waiting", cadence)
+        self.assertIn("summary", cadence)
+        self.assertGreaterEqual(cadence["summary"]["waiting_count"], 1)
+
+    def test_compare_opportunities(self):
+        with patch.object(self.integrator, "load_opportunities", return_value=self.sample_opps):
+            res = self.integrator.compare_opportunities(["opp_test_1"])
+            self.assertEqual(res["compared_count"], 1)
+            self.assertEqual(res["matrix"][0]["organization"], "OpenAI Residency")
+
+    def test_analyze_keyword_coverage(self):
+        res = self.integrator.analyze_keyword_coverage(self.sample_opps[0])
+        self.assertEqual(res["opportunity_id"], "opp_test_1")
+        self.assertGreater(res["coverage_percentage"], 50)
+        self.assertTrue(res["ats_ready"])
+
 
 if __name__ == "__main__":
     unittest.main()
