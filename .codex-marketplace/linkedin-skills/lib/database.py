@@ -112,6 +112,40 @@ def init_database() -> None:
             )
         """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_outbox_status ON outbox_jobs(status)")
+
+        # 5. Inbox Scanned Jobs (Discovered from Ashby, Greenhouse, Lever, Workable, etc.)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS inbox_jobs (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                organization TEXT NOT NULL,
+                category TEXT,
+                location TEXT,
+                source TEXT NOT NULL,
+                url TEXT UNIQUE NOT NULL,
+                posted_at TEXT,
+                status TEXT NOT NULL DEFAULT 'inbox',
+                match_score INTEGER DEFAULT 85,
+                match_reason TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_inbox_status ON inbox_jobs(status)")
+
+        # 6. Wix Headless CMS & Cloud Sync Audit Log
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS wix_sync_events (
+                sync_id TEXT PRIMARY KEY,
+                site_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                payload_hash TEXT NOT NULL,
+                status TEXT NOT NULL,
+                records_count INTEGER NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_wix_sync_status ON wix_sync_events(status)")
         
         # Check if seeding needed for drafts
         cur = conn.execute("SELECT COUNT(*) as count FROM drafts")
@@ -458,6 +492,83 @@ def db_transition_approval(
     sync_drafts_to_json_mirror()
     updated = db_get_draft(draft_id)
     return {"success": True, "draft": updated, "event_id": evt_id}
+
+
+# =============================================================================
+# 5. Inbox Jobs (Discovered Opportunities) Operations
+# =============================================================================
+
+def db_get_inbox_jobs(status: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Retrieve all discovered inbox jobs, optionally filtered by status."""
+    conn = get_db_connection()
+    try:
+        if status:
+            rows = conn.execute("SELECT * FROM inbox_jobs WHERE status = ? ORDER BY created_at DESC", (status,)).fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM inbox_jobs ORDER BY created_at DESC").fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def db_upsert_inbox_job(job: Dict[str, Any]) -> None:
+    """Insert or update a discovered job in the inbox repository."""
+    conn = get_db_connection()
+    try:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        job_id = job.get("id") or f"inbox_{uuid.uuid4().hex[:10]}"
+        conn.execute("""
+            INSERT INTO inbox_jobs (
+                id, title, organization, category, location, source, url, posted_at, status, match_score, match_reason, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(url) DO UPDATE SET
+                title = excluded.title,
+                organization = excluded.organization,
+                category = excluded.category,
+                location = excluded.location,
+                posted_at = excluded.posted_at,
+                match_score = excluded.match_score,
+                match_reason = excluded.match_reason,
+                updated_at = excluded.updated_at
+        """, (
+            job_id,
+            job.get("title", "Discovered Role"),
+            job.get("organization", "Company"),
+            job.get("category", "AI/ML"),
+            job.get("location", "Remote"),
+            job.get("source", "ashby"),
+            job.get("url", ""),
+            job.get("posted_at", now_iso[:10]),
+            job.get("status", "inbox"),
+            job.get("match_score", 85),
+            job.get("match_reason", "Discovered via portal scan"),
+            now_iso,
+            now_iso
+        ))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+# =============================================================================
+# 6. Wix Headless CMS Sync Event Logging
+# =============================================================================
+
+def db_log_wix_sync(site_id: str, event_type: str, payload_hash: str, status: str, count: int) -> str:
+    """Log a Wix Headless CMS sync or webhook event."""
+    conn = get_db_connection()
+    sync_id = f"wix_{uuid.uuid4().hex[:12]}"
+    now_iso = datetime.now(timezone.utc).isoformat()
+    try:
+        conn.execute("""
+            INSERT INTO wix_sync_events (
+                sync_id, site_id, event_type, payload_hash, status, records_count, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (sync_id, site_id, event_type, payload_hash, status, count, now_iso))
+        conn.commit()
+        return sync_id
+    finally:
+        conn.close()
 
 
 # Initialize tables upon module import

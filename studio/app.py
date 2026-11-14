@@ -685,6 +685,140 @@ def frontierpilot_wix_sync_endpoint():
 
 
 # =============================================================================
+# FRONTIERPILOT 2.0 ADVANCED CAPABILITIES ROUTING
+# =============================================================================
+
+@app.route("/api/frontierpilot/today", methods=["GET"])
+def frontierpilot_today_endpoint():
+    """Retrieve Dual-Loop Today cockpit state (Supply + Demand loops)."""
+    from lib.frontierpilot_integrator import FrontierPilotIntegrator
+    integrator = FrontierPilotIntegrator()
+    data = integrator.get_today_dashboard_data()
+    return jsonify({"success": True, "data": data})
+
+
+@app.route("/api/frontierpilot/explore", methods=["GET"])
+def frontierpilot_explore_endpoint():
+    """Fetch discovered jobs from ATS portal scanner with age and ATS filters."""
+    from lib.frontierpilot_integrator import FrontierPilotIntegrator
+    integrator = FrontierPilotIntegrator()
+    ats = request.args.get("ats", "all")
+    age = request.args.get("age", "all")
+    q = request.args.get("q", "")
+    jobs = integrator.get_explore_jobs(ats=ats, age=age, q=q)
+    return jsonify({"success": True, "jobs": jobs, "count": len(jobs)})
+
+
+@app.route("/api/frontierpilot/explore/add", methods=["POST"])
+def frontierpilot_explore_add_endpoint():
+    """Add a discovered role from Explore directly into the active Pipeline."""
+    from lib.frontierpilot_integrator import FrontierPilotIntegrator
+    integrator = FrontierPilotIntegrator()
+    data = request.get_json() or {}
+    res = integrator.add_explore_job_to_pipeline(data)
+    return jsonify(res)
+
+
+@app.route("/api/frontierpilot/compare", methods=["GET", "POST"])
+def frontierpilot_compare_endpoint():
+    """Evaluate multi-role side-by-side decision matrix."""
+    from lib.frontierpilot_integrator import FrontierPilotIntegrator
+    integrator = FrontierPilotIntegrator()
+    ids_param = request.args.get("ids", "")
+    if request.is_json and request.get_json():
+        ids = request.get_json().get("ids", [])
+    elif ids_param:
+        ids = [i.strip() for i in ids_param.split(",") if i.strip()]
+    else:
+        ids = []
+    matrix = integrator.compare_opportunities(ids)
+    return jsonify({"success": True, "comparison": matrix})
+
+
+@app.route("/api/frontierpilot/followups", methods=["GET"])
+def frontierpilot_followups_endpoint():
+    """Fetch follow-up cadence radar entries grouped by urgency."""
+    from lib.frontierpilot_integrator import FrontierPilotIntegrator
+    integrator = FrontierPilotIntegrator()
+    opps = integrator.load_opportunities()
+    cadence = integrator.compute_followup_cadence(opps)
+    return jsonify({"success": True, "cadence": cadence})
+
+
+@app.route("/api/frontierpilot/followups/log", methods=["POST"])
+def frontierpilot_followups_log_endpoint():
+    """Log an outreach touchpoint for a candidate opportunity."""
+    data = request.get_json() or {}
+    opp_id = data.get("opp_id")
+    notes = data.get("notes", "")
+    from lib.frontierpilot_integrator import FrontierPilotIntegrator
+    integrator = FrontierPilotIntegrator()
+    opps = integrator.load_opportunities()
+    updated = False
+    for o in opps:
+        if o.get("id") == opp_id:
+            o["followup_count"] = o.get("followup_count", 0) + 1
+            o["last_followup_date"] = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            o["last_followup_note"] = notes
+            updated = True
+            break
+    if updated:
+        integrator.save_opportunities(opps)
+    return jsonify({"success": True, "opp_id": opp_id, "updated": updated})
+
+
+@app.route("/api/frontierpilot/cv_studio", methods=["GET"])
+def frontierpilot_cv_studio_endpoint():
+    """Fetch ATS keyword coverage and high-impact CV bullet rewrites."""
+    from lib.frontierpilot_integrator import FrontierPilotIntegrator
+    integrator = FrontierPilotIntegrator()
+    opp_id = request.args.get("opp_id", "handshake-ai-evaluator")
+    studio_data = integrator.get_cv_studio_data(opp_id)
+    return jsonify({"success": True, "studio": studio_data})
+
+
+@app.route("/api/frontierpilot/cv_studio/rewrite", methods=["POST"])
+def frontierpilot_cv_studio_rewrite_endpoint():
+    """Rewrite a bullet point using Google's X-Y-Z formula."""
+    from lib.frontierpilot_integrator import FrontierPilotIntegrator
+    integrator = FrontierPilotIntegrator()
+    data = request.get_json() or {}
+    bullet = data.get("bullet", "")
+    role = data.get("role", "AI Engineer")
+    keywords = data.get("keywords", [])
+    res = integrator.rewrite_cv_bullet(bullet, role, keywords)
+    return jsonify(res)
+
+
+@app.route("/api/frontierpilot/portals", methods=["GET"])
+def frontierpilot_portals_endpoint():
+    """List tracked company portals with connectivity health status."""
+    from lib.frontierpilot_integrator import FrontierPilotIntegrator
+    integrator = FrontierPilotIntegrator()
+    portals = integrator.get_portals_health(verify_live=False)
+    return jsonify({"success": True, "portals": portals})
+
+
+@app.route("/api/frontierpilot/portals/verify", methods=["POST", "GET"])
+def frontierpilot_portals_verify_endpoint():
+    """Probe tracked company portals for live HTTP health status."""
+    from lib.frontierpilot_integrator import FrontierPilotIntegrator
+    integrator = FrontierPilotIntegrator()
+    portals = integrator.get_portals_health(verify_live=True)
+    return jsonify({"success": True, "portals": portals})
+
+
+@app.route("/api/frontierpilot/wix/templates", methods=["GET"])
+def frontierpilot_wix_templates_endpoint():
+    """Retrieve curated Wix Studio website templates with preview URLs."""
+    from lib.frontierpilot_integrator import FrontierPilotIntegrator
+    integrator = FrontierPilotIntegrator()
+    templates = integrator.get_wix_templates()
+    return jsonify({"success": True, "templates": templates})
+
+
+
+# =============================================================================
 # VAIBHAV SISINTY AI GROWTH & GPS FRAMEWORK SUITE
 # =============================================================================
 

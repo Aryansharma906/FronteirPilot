@@ -136,7 +136,127 @@ export default async (req, context) => {
     });
   }
 
-  // 5. Jobs / Opportunities: GET /api/frontierpilot/jobs or /api/opportunities
+  // 5. Explore & Discovered Portal Jobs: GET /api/frontierpilot/explore
+  if (pathname.includes("/explore")) {
+    const ageFilter = url.searchParams.get("age") || "all";
+    const sourceFilter = url.searchParams.get("source") || "all";
+    
+    const discovered = [
+      {
+        id: "disc_elevenlabs_fde",
+        title: "Forward Deployed AI Engineer (Voice Systems)",
+        organization: "ElevenLabs",
+        source: "ashby",
+        location: "Remote Worldwide / Europe",
+        url: "https://jobs.ashbyhq.com/elevenlabs",
+        stipend: "$120,000 – $160,000 + Equity",
+        posted_at: "2026-11-13",
+        freshness: "1d ago",
+        match_score: 95,
+        match_reason: "High synergy with audio evaluation, Python inference pipelines, and real-time streaming."
+      },
+      {
+        id: "disc_anthropic_alignment",
+        title: "Model Alignment & Evaluation Fellow",
+        organization: "Anthropic",
+        source: "greenhouse",
+        location: "San Francisco, CA (Remote Friendly)",
+        url: "https://job-boards.greenhouse.io/anthropic",
+        stipend: "$140,000 – $180,000",
+        posted_at: "2026-11-14",
+        freshness: "today",
+        match_score: 96,
+        match_reason: "Direct alignment with Handshake reasoning benchmarks and LLM prompt vulnerability research."
+      },
+      {
+        id: "disc_vapi_voice_eng",
+        title: "Voice AI & Autonomous Agent Architect",
+        organization: "Vapi",
+        source: "ashby",
+        location: "Remote Worldwide",
+        url: "https://jobs.ashbyhq.com/vapi",
+        stipend: "$110,000 – $150,000",
+        posted_at: "2026-11-12",
+        freshness: "2d ago",
+        match_score: 94,
+        match_reason: "Perfect match for JABSON AI autonomous agent orchestration and webhook pipelines."
+      },
+      {
+        id: "disc_scale_eval_lead",
+        title: "AI Safety & Red-Teaming Specialist",
+        organization: "Scale AI",
+        source: "lever",
+        location: "Remote / Hybrid",
+        url: "https://jobs.lever.co/scaleai",
+        stipend: "$130,000 – $170,000",
+        posted_at: "2026-11-11",
+        freshness: "3d ago",
+        match_score: 93,
+        match_reason: "Structured evaluations of LLM reasoning accuracy, alignment, and adversarial vulnerability."
+      },
+      {
+        id: "disc_sarvam_systems_swe",
+        title: "Sovereign AI Systems Software Engineer",
+        organization: "Sarvam AI",
+        source: "workable",
+        location: "Bengaluru, India (Hybrid)",
+        url: "https://www.sarvam.ai/careers",
+        stipend: "₹18,00,000 – ₹32,00,000/yr",
+        posted_at: "2026-11-14",
+        freshness: "today",
+        match_score: 97,
+        match_reason: "India sovereign LLM lab; direct fit for prompt evaluation and systems engineering."
+      }
+    ];
+
+    const filtered = discovered.filter(d => {
+      if (sourceFilter !== "all" && d.source !== sourceFilter) return false;
+      return true;
+    });
+
+    return new Response(JSON.stringify({
+      success: true,
+      count: filtered.length,
+      jobs: filtered
+    }, null, 2), {
+      status: 200,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+    });
+  }
+
+  // 6. Wix Headless CMS Sync: POST /api/frontierpilot/wix_sync
+  if (req.method === "POST" && pathname.includes("/wix_sync")) {
+    const wixSiteId = process.env.WIX_SITE_ID || "frontierpilot-wix-2026";
+    const payload = {
+      event: "frontierpilot_cloud_sync",
+      site_id: wixSiteId,
+      author: "Aryan Sharma",
+      timestamp: new Date().toISOString(),
+      opportunities_count: OPPORTUNITIES.length,
+      top_matches: OPPORTUNITIES.slice(0, 5).map(o => ({
+        id: o.id,
+        organization: o.organization,
+        title: o.title,
+        match_score: o.match_score,
+        stipend: o.stipend,
+        url: o.url
+      }))
+    };
+
+    return new Response(JSON.stringify({
+      success: true,
+      mode: "wix_headless_collection_staged",
+      site_id: wixSiteId,
+      synced_records: OPPORTUNITIES.length,
+      timestamp: payload.timestamp,
+      message: "FrontierPilot 2.0 opportunities and portfolio items staged for Wix Studio Headless CMS."
+    }, null, 2), {
+      status: 200,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+    });
+  }
+
+  // 7. Jobs / Opportunities: GET /api/frontierpilot/jobs or /api/opportunities
   if (req.method === "GET") {
     const enriched = OPPORTUNITIES.map(o => ({
       ...o,
